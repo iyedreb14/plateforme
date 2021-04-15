@@ -3,12 +3,14 @@
 namespace App\Controller;
 
 use App\Entity\Questions;
+use App\Entity\Quizz;
 use App\Form\QuestionsType;
 use App\Repository\QuestionsRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Repository\QuizzRepository;
 
 /**
  * @Route("/questions")
@@ -28,25 +30,46 @@ class QuestionsController extends AbstractController
     /**
      * @Route("/new", name="questions_new", methods={"GET","POST"})
      */
-    public function new(Request $request): Response{
-        $question = new Questions();
-        if  ($request ->getMethod()==Request::METHOD_POST)
-        {
-    $titre = $request ->request->get('titre');
-    $choix = $request ->request->get('choix');
-    $reponse = $request ->request->get('reponse');
-    $quizz = $request ->request->get('quizz');
-
+    public function new(Request $request,QuizzRepository $QuizzRepository): Response{
         
-        $question -> setTitre('titre');
-        $question ->setChoix('choix');
-        $question ->setReponse('reponse');
-        $question ->setQuizz('quizz');
+        $question = new Questions();
+        if  ($request->isMethod('POST'))
+        
+        {
+
+            $choix1=$request->request->get('choix1');
+            $choix2=$request->request->get('choix2');
+            $choix3=$request->request->get('choix3');
+            $choix = $choix1.";".$choix2.";".$choix3;
+    $titre = $request ->request->get('titre');
+
+    $reponse = $request ->request->get('reponse');
+    $quizzid = $request ->request->get('quizz');
+    $quizz = $this->getDoctrine()
+    ->getRepository(Quizz::class)
+    ->find($quizzid);
+   
+        
+        $question -> setTitre( $titre);
+        $question ->setChoix($choix);
+        $question ->setReponse($reponse);
+        $question ->setQuizz($quizz);
+        $entityManager = $this->getDoctrine()->getManager();
+        $entityManager->persist($question);
+        
+
+            // actually executes the queries (i.e. the INSERT query)
+            
+            $entityManager->flush();
+    
+            return $this->redirectToRoute('questions_index');
+
         }
         $form=$this->createForm(QuestionsType::class ,$question);
         $form->handleRequest ( $request);
         return $this->render('questions/new.html.twig', [
             'question' => $question,
+            'Quizzs' => $QuizzRepository->findAll(),
             'form' => $form->createView(),
         ]);
     }
